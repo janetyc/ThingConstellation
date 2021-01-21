@@ -464,26 +464,26 @@ d3.select('#centrality_btn').on('click', function () {
     original_node_data.forEach(function(d){
       d.label = node_name[d.value];
       if(d.value in betweenness._stringValues){
-        original_node_data[d.value].betweenness = betweenness._stringValues[d.value];
+        original_node_data[d.value].betweenness = parseFloat(betweenness._stringValues[d.value]).toFixed(6);
       }else{
         original_node_data[d.value].betweenness = 0;
       }
 
       if(d.value in eigenvector._stringValues){
-        original_node_data[d.value].eigenvector = eigenvector._stringValues[d.value];
+        original_node_data[d.value].eigenvector = parseFloat(eigenvector._stringValues[d.value]).toFixed(6);
       }else{
         original_node_data[d.value].eigenvector = 0;
       }
 
       if(d.value in all_path._stringValues){
-        original_node_data[d.value].closeness = closeness_results[d.value];
+        original_node_data[d.value].closeness = parseFloat(closeness_results[d.value]).toFixed(6);
       }else{
         original_node_data[d.value].closeness = -1;
       }
 
       
       if(d.value in degree_results){
-        original_node_data[d.value].degree = degree_results[d.value];
+        original_node_data[d.value].degree = parseFloat(degree_results[d.value]).toFixed(6);
       }else{
         original_node_data[d.value].degree = 0;
       }
