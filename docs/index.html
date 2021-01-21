@@ -121,8 +121,8 @@ text {
 <script src="https://d3js.org/d3-path.v1.min.js"></script>
 
 
-<script type="text/javascript" src="/assets/js/jLouvain.js"></script>
-<script type="text/javaScript" src="/assets/js/jsnetworkx.js"></script>
+<script type="text/javascript" src="{{ "/assets/js/jLouvain.js" | prepend: site.baseurl }}"></script>
+<script type="text/javaScript" src="{{ "/assets/js/jsnetworkx.js" | prepend: site.baseurl }}"></script>
 
 <script>
 
@@ -215,7 +215,7 @@ svg.append("text")
 
 var root = {};
 
-d3.json("{{ site.url }}/assets/data/object_graph.json", function(error, graph) {
+d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", function(error, graph) {
   if (error) throw error;
   
   graph.links.forEach(function(d,i){ 
