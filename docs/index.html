@@ -53,8 +53,10 @@ text {
   color: #f00;
 }
 #globalSVG {
+
   float: left;
   display: block;
+  /*border: 1px solid #ff0000;*/
 }
 #treeSVG {
   float: left;
@@ -62,52 +64,78 @@ text {
   margin-left: 20px;
   margin-top: 20px;
   margin-bottom: 30px;
+  /*border: 1px solid #ff00ff;*/
 }
 #tableArea{
- margin-top: 20px; 
+ margin-top: 20px;
+ /*border: 1px solid #ff002f;*/
 }
+#nodeArea{
+  overflow: hidden;
+  margin-bottom: 7px;
+}
+#nodeArea div{
+  font-size: 13px;
+  float: left;
+  color: #555;
+  border: 1px solid #555;
+  margin: 1px;
+  padding: 2px;
+}
+.active {
+  background-color: #5092D8;
+  color: white !important;
+}
+#threshold {
+  font-size: 14px;
+  margin-top: 2px;
+  margin-left: 5px;
+  color: #666;
+}
+
 /* for table */
 /* 
   Generic Styling, for Desktops/Laptops 
   */
-  table { 
-    width: 100%; 
-    border-collapse: collapse; 
-  }
-  /* Zebra striping */
-  tr:nth-of-type(odd) { 
-    background: #eee; 
-  }
-  th { 
-    background: #333; 
-    color: white; 
-    font-weight: bold; 
-    cursor: s-resize;
-    background-repeat: no-repeat;
-        background-position: 3% center;
-  }
-  td, th { 
-    padding: 6px; 
-    border: 1px solid #ccc; 
-    text-align: left; 
-  }
-  
-  th.des:after {
-      content: "\21E9";
-    }
-    
-    th.aes:after {
-      content: "\21E7";
-    }
+table { 
+  width: 100%; 
+  border-collapse: collapse; 
+}
+/* Zebra striping */
+tr:nth-of-type(odd) { 
+  background: #eee; 
+}
+th { 
+  background: #333; 
+  color: white; 
+  font-weight: bold; 
+  cursor: s-resize;
+  background-repeat: no-repeat;
+  background-position: 3% center;
+}
+td, th { 
+  padding: 6px; 
+  border: 1px solid #ccc; 
+  text-align: left; 
+}
+
+th.des:after {
+  content: "\21E9";
+}
+
+th.aes:after {
+  content: "\21E7";
+}
 
 
 </style>
 <body>
-  <div id="threshold">Threshold: <span></span></div>
+  <div id="nodeArea"></div>
   <hr>
-  <div id="content_wrapper">
-    <input type="button" value="Centrality" id='centrality_btn' />
-  </div>
+  <div id="threshold">Threshold: <span></span><input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' /></div>
+  <!-- <div id="content_wrapper">
+    <input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' />
+  </div> -->
   <div id="globalSVG"></div>
   <div id="treeSVG"></div>
   <div id="tableArea"></div>
@@ -126,7 +154,7 @@ text {
 
 // var width = 1000,
 //     height = 600;
-var width = 980,
+var width = 735,
     height = 600;
 
 var color = d3.scale.category20();
@@ -145,13 +173,13 @@ var force = d3.layout.force()
 
 var x = d3.scale.linear()
     .domain([0, 0.5])
-    .range([270, 80])
+    .range([270, 10])
+    // .range([270, 80])
     .clamp(true);
 
 var brush = d3.svg.brush()
     .x(x)
     .extent([0, 0]);
-
 
 
 var svg = d3.select("#globalSVG").append("svg")
@@ -178,7 +206,7 @@ var community_results = {};
 svg.append("g")
     // .attr("class", "x axis")
     // .attr("transform", "translate(" + (width - 20)  + ",0)")
-    .attr("transform", "translate(" + 0 + "," + 25 + ")")
+    .attr("transform", "translate(" + 0 + "," + 7 + ")")
     .attr("class", "y axis")
     .call(d3.svg.axis()
       .scale(x)
@@ -199,17 +227,17 @@ slider.selectAll(".extent,.resize")
 
 var handle = slider.append("circle")
     .attr("class", "handle")
-    .attr("transform", "translate(" + 0 + "," + 25 + ")")
+    .attr("transform", "translate(" + 0 + "," + 7 + ")")
     // .attr("transform", "translate(" + (width - 20) + ",0)")
     .attr("r", 5);
 
-svg.append("text")
-    .attr("x", 182)
-    .attr("y", 10)
-    .attr("text-anchor", "end")
-    .attr("font-size", "12px")
-    .style("opacity", 0.5)
-    .text("co-occurence threshold")
+// svg.append("text")
+//     .attr("x", 115)
+//     .attr("y", 10)
+//     .attr("text-anchor", "end")
+//     .attr("font-size", "12px")
+//     .style("opacity", 0.5)
+//     .text("co-occurence threshold")
 
 var root = {};
 
@@ -220,7 +248,36 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
     d.i = i;
   });
 
-  graph.nodes.forEach(function(d,i){ 
+  graph.nodes.forEach(function(d,i){
+    var nodeArea = d3.select('#nodeArea').append('div').attr("id","node_"+i).attr("class","nodeBt")
+      .text(d.id)
+      .on("click", function(d){
+        d3.selectAll(".nodeBt").classed("active", false);
+        this.className = "nodeBt active";
+        
+
+        var list = []
+        list.push({
+          "parent": "",
+          "obj": node_name[i],
+          "depth": 0, 
+          "energy": 1.0
+        });
+        
+        group = spreading(list, [], [], 0.05);
+        
+        var t_data = getTreeData(group);
+        a = treeVis(t_data);
+        
+        d3.select("#treeSVG").node().append(a.node());
+        
+
+        //set
+
+    });
+
+
+
     d.i = i;
     node_data.push(i);
     node_name[i] = d.id;
@@ -322,7 +379,9 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       .style('fill', function (d) {
         return color(d.community);
       }).on("click", function(d){
-        
+        d3.selectAll(".nodeBt").classed("active", false);
+        d3.select("#node_"+d.value).attr("class", "nodeBt active");
+  
         var list = []
         list.push({
           "parent": "",
@@ -334,13 +393,14 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
         group = spreading(list, [], [], 0.05);
         
         var t_data = getTreeData(group);
-        console.log(group);
         a = treeVis(t_data);
         
         d3.select("#treeSVG").node().append(a.node());  
         // d3.select("body").node().append(a.node());
         
       });
+
+
 
     // generate_objectTable(original_node_data);
       
@@ -780,6 +840,10 @@ function tabulate(type, data, columns) {
         .text(function (d) { return d.value; })
         .on("click", function(d){
           if(d.column == "label"){
+            d3.selectAll(".nodeBt").classed("active", false);
+            d3.select("#node_"+d.value).attr("class", "nodeBt active");
+            
+
             var list = []
             list.push({
               "parent": "",
@@ -791,7 +855,7 @@ function tabulate(type, data, columns) {
             group = spreading(list, [], [], 0.05);
             
             var t_data = getTreeData(group);
-            console.log(group);
+            // console.log(group);
             a = treeVis(t_data);
             d3.select("#treeSVG").node().append(a.node());  
             
