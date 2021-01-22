@@ -78,13 +78,17 @@ text {
   font-size: 13px;
   float: left;
   color: #555;
-  border: 1px solid #555;
+  border: 1px solid #dadada;
   margin: 1px;
-  padding: 2px;
+  padding: 3px;
 }
 .active {
-  background-color: #5092D8;
-  color: white !important;
+  /*background-color: #5092D8;*/
+  /*color: #ff0000 !important;*/
+  border: 1px solid #000 !important;
+  font-size: 14px !important;
+  padding: 2px !important;
+
 }
 #threshold {
   font-size: 14px;
@@ -100,6 +104,7 @@ text {
   margin: 1px;
   padding: 2px; 
 }
+
 /* for table */
 /* 
   Generic Styling, for Desktops/Laptops 
@@ -138,8 +143,8 @@ th.aes:after {
 </style>
 <body>
   <div id="nodeArea"></div>
-  <hr>
-  <div id="threshold">Threshold: <span></span><input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' /></div>
+  
+  <div id="threshold">Threshold: <span></span></div>
   <!--<div id="viewArea"><div class="viewBt">Social View</div><div class="viewBt">Ego View</div></div>-->
   <!-- <div id="content_wrapper">
     <input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' />
