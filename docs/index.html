@@ -265,11 +265,13 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
         });
         
         group = spreading(list, [], [], 0.05);
-        
-        var t_data = getTreeData(group);
-        a = treeVis(t_data);
-        
-        d3.select("#treeSVG").node().append(a.node());
+        if(group.length > 1){
+          var t_data = getTreeData(group);
+          a = treeVis(t_data);
+          d3.select("#treeSVG").node().append(a.node());
+        }else{
+          d3.select('#treeSVG').select("svg").remove();
+        }
         
 
         //set
@@ -392,11 +394,13 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
         
         group = spreading(list, [], [], 0.05);
         
-        var t_data = getTreeData(group);
-        a = treeVis(t_data);
-        
-        d3.select("#treeSVG").node().append(a.node());  
-        // d3.select("body").node().append(a.node());
+        if(group.length > 1){
+          var t_data = getTreeData(group);
+          a = treeVis(t_data);
+          d3.select("#treeSVG").node().append(a.node());
+        }else{
+          d3.select('#treeSVG').select("svg").remove();
+        }
         
       });
 
@@ -854,10 +858,13 @@ function tabulate(type, data, columns) {
             
             group = spreading(list, [], [], 0.05);
             
-            var t_data = getTreeData(group);
-            // console.log(group);
-            a = treeVis(t_data);
-            d3.select("#treeSVG").node().append(a.node());  
+            if(group.length > 1){
+              var t_data = getTreeData(group);
+              a = treeVis(t_data);
+              d3.select("#treeSVG").node().append(a.node());
+            }else{
+              d3.select('#treeSVG').select("svg").remove();
+            }
             
           }
           
