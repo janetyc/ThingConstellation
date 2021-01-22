@@ -92,7 +92,14 @@ text {
   margin-left: 5px;
   color: #666;
 }
-
+#viewArea {
+  overflow: hidden;
+}
+#viewArea div{
+  border: 1px solid #555;
+  margin: 1px;
+  padding: 2px; 
+}
 /* for table */
 /* 
   Generic Styling, for Desktops/Laptops 
@@ -133,6 +140,7 @@ th.aes:after {
   <div id="nodeArea"></div>
   <hr>
   <div id="threshold">Threshold: <span></span><input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' /></div>
+  <!--<div id="viewArea"><div class="viewBt">Social View</div><div class="viewBt">Ego View</div></div>-->
   <!-- <div id="content_wrapper">
     <input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' />
   </div> -->
@@ -357,7 +365,7 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
     var community = jLouvain().nodes(node_data).edges(edge_data);
     original_node_data = d3.entries(node_data);
     
-    //Communnity detection on click event
+    //Communnity detection
     var community_assignment_result = community();
     var node_ids = Object.keys(community_assignment_result);
 
@@ -372,13 +380,22 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       }
 
       original_node_data[d].community = community_id;
+
       max_community_number = max_community_number < community_assignment_result[d] ?
         community_assignment_result[d] : max_community_number;
     });
 
-
     var color = d3.scale.category20().domain(d3.range([0, max_community_number]));
-
+    
+    //update nodeBt style
+    if(node_ids.length){
+      node_ids.forEach(function (d) {
+        d3.select("#node_"+d).style("background-color", color(original_node_data[d].community)).style("color","#fff");
+      });
+    }else{
+      d3.selectAll(".nodeBt").style("background-color", "#fff").style("color","#555");
+    }
+    
     
     var target_node = d3.select(".nodeBt.active");
     if(target_node[0][0]){
@@ -408,8 +425,7 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       }).on("click", function(d){
         d3.selectAll(".nodeBt").classed("active", false);
         d3.select("#node_"+d.value).attr("class", "nodeBt active");
-  
-
+        
 
         // var list = []
         // list.push({
