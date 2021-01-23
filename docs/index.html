@@ -159,6 +159,12 @@ th.aes:after {
 <script src="https://d3js.org/d3-shape.v1.min.js"></script>
 <script src="https://d3js.org/d3-path.v1.min.js"></script>
 
+<script src="https://d3js.org/d3-color.v1.min.js" type="text/javascript"></script>
+<script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+<script src="https://d3js.org/d3-scale-chromatic.v1.min.js" type="text/javascript"></script>
+<script src="https://d3js.org/d3-scale.v3.min.js"></script>
+<!-- <script src="https://d3js.org/d3-interpolate.v2.min.js"></script> -->
+
 
 <script type="text/javascript" src="{{ "/assets/js/jLouvain.js" | prepend: site.baseurl }}"></script>
 <script type="text/javaScript" src="{{ "/assets/js/jsnetworkx.js" | prepend: site.baseurl }}"></script>
@@ -169,6 +175,12 @@ th.aes:after {
 //     height = 600;
 var width = 735,
     height = 610;
+
+
+//var colorScale = d3.scaleSequential(t => d3.hsl(t * 360, 1, 0.5).toString())
+// var colorScale = d3.scaleSequential(t => d3.interpolateYlGnBu(t).toString());
+var colorScale = d3.scaleSequential(t => d3.interpolateSpectral(t).toString());
+
 
 var color = d3.scale.category20();
 var linearColor = d3.scale.linear().domain([0, 3, 8]).range(["#ED117D", "#FFCCE5", "#FDECF4"]);
@@ -392,10 +404,24 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
 
     var color = d3.scale.category20().domain(d3.range([0, max_community_number]));
     
+    
     //update nodeBt style
     if(node_ids.length){
       node_ids.forEach(function (d) {
-        d3.select("#node_"+d).style("background-color", color(original_node_data[d].community)).style("color","#fff");
+        var colorValue = original_node_data[d].community/max_community_number;
+        var nodeColor = d3.select("#node_"+d).style("background-color", colorScale(colorValue));
+        
+        // if(colorValue < 0.3){
+        //   nodeColor.style("color","rgb(8, 29, 88)");
+        // }else{
+        //   nodeColor.style("color","#fff");
+        // }
+        if(colorValue > 0.37 && colorValue < 0.7){
+          nodeColor.style("color","rgb(8, 29, 88)");
+        }else{
+          nodeColor.style("color","#fff");
+        }
+        
       });
     }else{
       d3.selectAll(".nodeBt").style("background-color", "#fff").style("color","#555");
@@ -426,7 +452,8 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
     nodes_g.selectAll('.node')
       .data(original_node_data)
       .style('fill', function (d) {
-        return color(d.community);
+        // return color(d.community);
+        return colorScale(d.community/max_community_number)
       }).on("click", function(d){
         d3.selectAll(".nodeBt").classed("active", false);
         d3.select("#node_"+d.value).attr("class", "nodeBt active");
