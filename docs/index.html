@@ -52,11 +52,13 @@ text {
   font-size: 10px;
   color: #f00;
 }
+#sliderSVG {
+  display: block;
+  height: 30px;
+}
 #globalSVG {
-
   float: left;
   display: block;
-  /*border: 1px solid #ff0000;*/
 }
 #treeSVG {
   float: left;
@@ -104,7 +106,15 @@ text {
   margin: 1px;
   padding: 2px; 
 }
-
+#status {
+  float: right;
+  /*border: 1px solid #555;*/
+  /*padding: 2px;*/
+}
+.statusBox {
+  border: 1px solid #555;
+  padding: 2px;
+}
 /* for table */
 /* 
   Generic Styling, for Desktops/Laptops 
@@ -144,11 +154,12 @@ th.aes:after {
 <body>
   <div id="nodeArea"></div>
   
-  <div id="threshold">Threshold: <span></span></div>
+  <div id="threshold">Threshold: <span></span><span id="status"></span></div>
   <!--<div id="viewArea"><div class="viewBt">Social View</div><div class="viewBt">Ego View</div></div>-->
   <!-- <div id="content_wrapper">
     <input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' />
   </div> -->
+  <div id="sliderSVG"></div>
   <div id="globalSVG"></div>
   <div id="treeSVG"></div>
   <div id="tableArea"></div>
@@ -208,7 +219,6 @@ var svg = d3.select("#globalSVG").append("svg")
     .attr("height", height);
 
 var links_g = svg.append("g");
-
 var nodes_g = svg.append("g");
 var tree_g = svg.append("g");
 
@@ -224,9 +234,14 @@ var node_name = {}
 var object_net = {};
 var community_results = {};
 
-svg.append("g")
-    // .attr("class", "x axis")
-    // .attr("transform", "translate(" + (width - 20)  + ",0)")
+var view_mode = 0;
+
+
+var slider = d3.select("#sliderSVG").append("svg").append("g")
+    .attr("class", "slider")
+    .call(brush);
+
+slider.append("g")
     .attr("transform", "translate(" + 0 + "," + 7 + ")")
     .attr("class", "y axis")
     .call(d3.svg.axis()
@@ -238,10 +253,6 @@ svg.append("g")
   .select(".domain")
   .select(function() { return this.parentNode.appendChild(this.cloneNode(true)); })
     .attr("class", "halo");
-
-var slider = svg.append("g")
-    .attr("class", "slider")
-    .call(brush);
 
 slider.selectAll(".extent,.resize")
     .remove();
@@ -274,9 +285,16 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       .text(d.id)
       .on("click", function(d){
         if(this.className == "nodeBt active"){
+          d3.select("#status").text("").classed("statusBox", false);
           d3.selectAll(".nodeBt").classed("active", false);
           d3.select('#treeSVG').select("svg").remove();
-        }else{
+          d3.select("#globalSVG").style("display","block");
+          view_mode = 0;
+        }else{ //show ego-view
+          view_mode = 1;
+          d3.select("#status").text("back to social view").attr("class","statusBox");
+          d3.select("#globalSVG").transition().style("display","none");
+          d3.select("#treeSVG").style("display","block");
           d3.selectAll(".nodeBt").classed("active", false);
           this.className = "nodeBt active";
 
@@ -298,7 +316,6 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
           }  
         }
 
-
         //set
 
     });
@@ -310,7 +327,23 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
     node_name[i] = d.id;
   });
 
-  
+
+  d3.select("#status").on("click", function(){
+    if(view_mode == 1 && d3.selectAll(".nodeBt.active")[0].length){
+      d3.select("#globalSVG").style("display","block");
+      d3.select("#treeSVG").style("display","none");
+      d3.select("#status").text("back to ego view").attr("class","statusBox");
+      view_mode = 0;
+      
+    }else if(view_mode == 0 && d3.selectAll(".nodeBt.active")[0].length){
+      d3.select("#globalSVG").style("display","none");
+      d3.select("#treeSVG").style("display","block");
+      d3.select("#status").text("back to soical view").attr("class","statusBox");
+      view_mode = 1;
+    }
+
+  });
+
   function brushed() {
 
     var value = brush.extent()[0];
@@ -451,10 +484,16 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
         if(target_node.attr("class") == "nodeBt active"){
           d3.selectAll(".nodeBt").classed("active", false);
           d3.select('#treeSVG').select("svg").remove();
+          d3.select("#globalSVG").style("display","block");
+          d3.select("#status").text("back to ego").attr("class","statusBox");
+          view_mode = 0;
         }else{
+          d3.select("#globalSVG").transition().style("display","none");
+          d3.select("#treeSVG").style("display","block");
           d3.selectAll(".nodeBt").classed("active", false);
           target_node.attr("class", "nodeBt active");
-          
+          d3.select("#status").text("back to social").attr("class","statusBox");
+          view_mode = 1;
 
           var list = []
           list.push({
