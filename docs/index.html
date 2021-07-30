@@ -153,9 +153,16 @@ th.aes:after {
 </style>
 <body>
   <div id="nodeArea"></div>
-  
+  <!-- add new node & link -->
+  <div>
+    <input id="newLinkSource" type="text" name="newSource"/>
+    <input id="newLinkTarget" type="text" name="newTarget"/>
+    <input id="newLinkWeight" type="range" name="newWeight" min="0" max="1" step="0.01"/><span id="newValue">0</span>
+    <button id="addNewLink">add a link</button>
+  </div>
+  <!------------------------->
+
   <div id="threshold">Threshold: <span></span><span id="status"></span></div>
-  <!--<div id="viewArea"><div class="viewBt">Social View</div><div class="viewBt">Ego View</div></div>-->
   <!-- <div id="content_wrapper">
     <input style="float:right;margin-top:5px;" type="button" value="Centrality" id='centrality_btn' />
   </div> -->
@@ -174,8 +181,6 @@ th.aes:after {
 <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
 <script src="https://d3js.org/d3-scale-chromatic.v1.min.js" type="text/javascript"></script>
 <script src="https://d3js.org/d3-scale.v3.min.js"></script>
-<!-- <script src="https://d3js.org/d3-interpolate.v2.min.js"></script> -->
-
 
 <script type="text/javascript" src="{{ "/assets/js/jLouvain.js" | prepend: site.baseurl }}"></script>
 <script type="text/javaScript" src="{{ "/assets/js/jsnetworkx.js" | prepend: site.baseurl }}"></script>
@@ -200,7 +205,9 @@ var tree = d3.tree()
 
 var force = d3.layout.force()
     .charge(-120)
-    .linkDistance(30)
+    // .linkDistance(30)
+    .linkDistance(function(d){return (1.0/d.weight * 4);})
+    .linkStrength(1)
     .size([width, height]);
 
 var x = d3.scale.linear()
@@ -229,7 +236,7 @@ var original_node_data =[];
 
 var node_data2 = [];
 var edge_data2 = [];
-var node_name = {}
+var node_name = {};
 
 var object_net = {};
 var community_results = {};
@@ -246,7 +253,6 @@ slider.append("g")
     .attr("class", "y axis")
     .call(d3.svg.axis()
       .scale(x)
-      // .orient("left")
       .tickFormat(function(d) { return d; })
       .tickSize(0)
       .tickPadding(12))
@@ -260,26 +266,88 @@ slider.selectAll(".extent,.resize")
 var handle = slider.append("circle")
     .attr("class", "handle")
     .attr("transform", "translate(" + 0 + "," + 7 + ")")
-    // .attr("transform", "translate(" + (width - 20) + ",0)")
     .attr("r", 5);
-
-// svg.append("text")
-//     .attr("x", 115)
-//     .attr("y", 10)
-//     .attr("text-anchor", "end")
-//     .attr("font-size", "12px")
-//     .style("opacity", 0.5)
-//     .text("co-occurence threshold")
 
 var root = {};
 
+//read data from json file
 d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", function(error, graph) {
   if (error) throw error;
   
+
+//-------------- add a new link into the graph -----------------
+//track whether the weight slider change
+d3.select("#newLinkWeight").on("input", d => {
+  d3.select("#newValue").text(document.getElementById('newLinkWeight').value);
+});
+
+d3.select("#addNewLink").on("click", function(){
+  var newSource = d3.select("#newLinkSource").node().value;
+  var newTarget = d3.select("#newLinkTarget").node().value;
+  var newWeight = d3.select("#newLinkWeight").node().value;
+
+  var existSource = Object.values(node_name).includes(newSource);
+  var existTarget = Object.values(node_name).includes(newTarget);
+
+  //add node
+  if (!existSource){
+    console.log("insert new source node");
+    graph.nodes.push({
+      id: newSource,
+      group: 1,
+      i: graph.nodes.length,
+      weight: 0
+    });
+
+  }
+
+  if (!existTarget){
+    console.log("insert new target node");
+    graph.nodes.push({
+      id: newTarget,
+      group: 1,
+      i: graph.nodes.length,
+      weight: 0
+    });
+
+  }
+
+  var sourceInd = getByValue(graph.nodes, newSource);
+  var targetInd = getByValue(graph.nodes, newTarget);
+
+  console.log("source id:"+sourceInd);
+  console.log("target id:"+targetInd);
+  
+  //add link
+  graph.links.push({
+    i: graph.nodes.length,
+    "source": sourceInd,
+    "target": targetInd,
+    "weight": parseFloat(document.getElementById('newLinkWeight').value)
+  });
+
+  init_data();
+  brushed();
+
+})
+
+function getByValue(map, searchValue) {
+  for (let [key, value] of map.entries()) {
+    if (value.id === searchValue)
+      return value.i;
+  }
+}
+
+//--------------------------------------------------------------
+
+var init_data = function (){
   graph.links.forEach(function(d,i){ 
     d.i = i;
   });
 
+  //clear up nodeArea
+  d3.select('#nodeArea').html("");
+  
   graph.nodes.forEach(function(d,i){
     var nodeArea = d3.select('#nodeArea').append('div').attr("id","node_"+i).attr("class","nodeBt")
       .text(d.id)
@@ -316,16 +384,66 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
           }  
         }
 
-        //set
-
     });
-
 
 
     d.i = i;
     node_data.push(i);
     node_name[i] = d.id;
   });
+}
+
+init_data();
+
+  // graph.links.forEach(function(d,i){ 
+  //   d.i = i;
+  // });
+
+  // graph.nodes.forEach(function(d,i){
+  //   var nodeArea = d3.select('#nodeArea').append('div').attr("id","node_"+i).attr("class","nodeBt")
+  //     .text(d.id)
+  //     .on("click", function(d){
+  //       if(this.className == "nodeBt active"){
+  //         d3.select("#status").text("").classed("statusBox", false);
+  //         d3.selectAll(".nodeBt").classed("active", false);
+  //         d3.select('#treeSVG').select("svg").remove();
+  //         d3.select("#globalSVG").style("display","block");
+  //         view_mode = 0;
+  //       }else{ //show ego-view
+  //         view_mode = 1;
+  //         d3.select("#status").text("back to social view").attr("class","statusBox");
+  //         d3.select("#globalSVG").transition().style("display","none");
+  //         d3.select("#treeSVG").style("display","block");
+  //         d3.selectAll(".nodeBt").classed("active", false);
+  //         this.className = "nodeBt active";
+
+  //         var list = []
+  //         list.push({
+  //           "parent": "",
+  //           "obj": node_name[i],
+  //           "depth": 0, 
+  //           "energy": 1.0
+  //         });
+          
+  //         group = spreading(list, [], [], 0.05);
+  //         if(group.length > 1){
+  //           var t_data = getTreeData(group);
+  //           a = treeVis(t_data);
+  //           d3.select("#treeSVG").node().append(a.node());
+  //         }else{
+  //           d3.select('#treeSVG').select("svg").remove();
+  //         }  
+  //       }
+
+  //       //set
+
+  //   });
+
+
+  //   d.i = i;
+  //   node_data.push(i);
+  //   node_name[i] = d.id;
+  // });
 
 
   d3.select("#status").on("click", function(){
@@ -344,7 +462,10 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
 
   });
 
+
   function brushed() {
+
+    updateNode();
 
     var value = brush.extent()[0];
     d3.select("#threshold span").text(value);
@@ -371,7 +492,6 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       node_data.push(d.i);
       object_net[d.id] = {};  
     });
-    
     
     graph.links.forEach(function(d,i){
       
@@ -400,13 +520,12 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       
     });
    
+    // //scale line width
+    // var max_weight = d3.max(edge_data, function (d) {
+    //   return d.weight
+    //   });
+    // var weight_scale = d3.scale.linear().domain([0, max_weight]).range([1, 5]);
 
-
-    //scale line width
-    var max_weight = d3.max(edge_data, function (d) {
-      return d.weight
-      });
-    var weight_scale = d3.scale.linear().domain([0, max_weight]).range([1, 5]);
 
     var community = jLouvain().nodes(node_data).edges(edge_data);
     original_node_data = d3.entries(node_data);
@@ -513,33 +632,90 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
           }  
         }
         
-
-        // var list = []
-        // list.push({
-        //   "parent": "",
-        //   "obj": node_name[d.value],
-        //   "depth": 0, 
-        //   "energy": 1.0
-        // });
-        
-        // group = spreading(list, [], [], 0.05);
-        
-        // if(group.length > 1){
-        //   var t_data = getTreeData(group);
-        //   a = treeVis(t_data);
-        //   d3.select("#treeSVG").node().append(a.node());
-        // }else{
-        //   d3.select('#treeSVG').select("svg").remove();
-        // }
         
       });
       
+
+    updateEdge();
+    //---------------------
+
+    // force
+    //     .links(edge_data);
+  
+
+    // var link = links_g.selectAll(".link")
+    //     .data(edge_data);
+
+    // link.enter().append("line")
+    //     .attr("class", "link")
+    //     .style("stroke-width", function(d) { return weight_scale(d.weight); });
+
+    // link.exit().remove();
+
+    // force.on("tick", function() {
+    //   link.attr("x1", function(d) { return d.source.x; })
+    //       .attr("y1", function(d) { return d.source.y; })
+    //       .attr("x2", function(d) { return d.target.x; })
+    //       .attr("y2", function(d) { return d.target.y; });
+  
+    //   node.attr("transform", function(d) {
+    //       return "translate(" + d.x + "," + d.y + ")";
+    //     })
+
+    // });
+
+
+    ///----------------------------------------------------------------
+
+    
+    // force.start();
+
+  }
+  
+
+  function updateNode() {
+    node.remove();
+  
+    
+  force
+      .nodes(graph.nodes);
+
+  node = nodes_g.selectAll(".node")
+      .data(graph.nodes).enter().append("g");
+
+ 
+  node.append("circle")
+      .attr("class", "node")
+      .attr("r", 5)
+      .style("fill", '#ff3399')
+      .call(force.drag);
+
+  
+  node.append("text")
+      .text(function(d) { 
+        return d.id
+      })
+      .attr('x', 6)
+      .attr('y', 3)
+      .style("font-size", "14px");
+
+    
+  }
+  function updateEdge() {
+    //------------------------------------
+    // edge
+    link.remove();
+    var max_weight = d3.max(edge_data, function (d) {
+      return d.weight
+      });
+    var weight_scale = d3.scale.linear().domain([0, max_weight]).range([1, 5]);
+
 
     force
         .links(edge_data);
   
 
-    var link = links_g.selectAll(".link")
+    link = links_g.selectAll(".link")
         .data(edge_data);
 
     link.enter().append("line")
@@ -560,19 +736,19 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
 
     });
 
-
     force.start();
-
-    ///----------------------------------------------------------------
-
   }
+  function update(){
+  // node
+  
+  node.remove();
+  link.remove();
     
   force
       .nodes(graph.nodes);
 
-  var node = nodes_g.selectAll(".node")
-      .data(graph.nodes)
-    .enter().append("g")
+  node = nodes_g.selectAll(".node")
+      .data(graph.nodes).enter().append("g");
 
  
   node.append("circle")
@@ -590,11 +766,76 @@ d3.json("{{ "/assets/data/object_graph.json" | prepend: site.baseurl }}", functi
       .attr('y', 3)
       .style("font-size", "14px");
 
-  brush.on("brush", brushed);
+    //------------------------------------
+    // edge
 
-  slider
-    .call(brush.extent([5, 5]))
-    .call(brush.event);
+    var max_weight = d3.max(edge_data, function (d) {
+      return d.weight
+      });
+    var weight_scale = d3.scale.linear().domain([0, max_weight]).range([1, 5]);
+
+
+    force
+        .links(edge_data);
+  
+
+    link = links_g.selectAll(".link")
+        .data(edge_data);
+
+    link.enter().append("line")
+        .attr("class", "link")
+        .style("stroke-width", function(d) { return weight_scale(d.weight); });
+
+    link.exit().remove();
+
+    force.on("tick", function() {
+      link.attr("x1", function(d) { return d.source.x; })
+          .attr("y1", function(d) { return d.source.y; })
+          .attr("x2", function(d) { return d.target.x; })
+          .attr("y2", function(d) { return d.target.y; });
+  
+      node.attr("transform", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        })
+
+    });
+
+    force.start();
+
+  }
+
+  var node = nodes_g.selectAll(".node");
+  var link = links_g.selectAll(".link");
+
+  // force
+  //     .nodes(graph.nodes);
+
+  // var node = nodes_g.selectAll(".node")
+  //     .data(graph.nodes)
+  //   .enter().append("g");
+
+ 
+  // node.append("circle")
+  //     .attr("class", "node")
+  //     .attr("r", 5)
+  //     .style("fill", '#ff3399')
+  //     .call(force.drag);
+
+  
+  // node.append("text")
+  //     .text(function(d) { 
+  //       return d.id
+  //     })
+  //     .attr('x', 6)
+  //     .attr('y', 3)
+  //     .style("font-size", "14px");
+
+
+brush.on("brush", brushed);
+
+slider
+  .call(brush.extent([5, 5]))
+  .call(brush.event);
 
 
 d3.select('#centrality_btn').on('click', function () {
